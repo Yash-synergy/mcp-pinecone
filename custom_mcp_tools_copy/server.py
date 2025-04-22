@@ -47,12 +47,12 @@ try:
     # Try relative import first (for installed package)
     from .pinecone_client import PineconeClient
     from .tool_definitions import ToolName, SERVER_TOOLS
-    from .tool_handlers import call_tool, semantic_search
+    from .tool_handlers import call_tool, semantic_search, pinecone_stats, read_document
 except ImportError:
     # Fall back to absolute import (for direct script execution)
     from custom_mcp_tools_copy.pinecone_client import PineconeClient
     from custom_mcp_tools_copy.tool_definitions import ToolName, SERVER_TOOLS
-    from custom_mcp_tools_copy.tool_handlers import call_tool, semantic_search
+    from custom_mcp_tools_copy.tool_handlers import call_tool, semantic_search, pinecone_stats, read_document
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -179,6 +179,24 @@ def register_tools(server):
                 
                 logger.info(f"Handling semantic search")
                 return semantic_search(arguments, pinecone_client)
+            
+            # Handle pinecone stats tool
+            elif name == ToolName.PINECONE_STATS:
+                if not pinecone_client:
+                    logger.error("Pinecone client not initialized")
+                    raise ValueError("Pinecone client not initialized")
+                
+                logger.info(f"Handling pinecone stats request")
+                return pinecone_stats(pinecone_client)
+            
+            # Handle read document tool
+            elif name == ToolName.READ_DOCUMENT:
+                if not pinecone_client:
+                    logger.error("Pinecone client not initialized")
+                    raise ValueError("Pinecone client not initialized")
+                
+                logger.info(f"Handling read document request")
+                return read_document(arguments, pinecone_client)
             
             # Handle unknown tool
             else:

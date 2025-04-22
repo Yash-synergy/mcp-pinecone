@@ -172,4 +172,115 @@ def semantic_search(
         return [types.TextContent(type="text", text=json.dumps({
             "error": str(e),
             "message": "Failed to perform semantic search"
+        }))]
+
+
+def debug_pinecone_client(pinecone_client: PineconeClient) -> None:
+    """
+    Debug helper function for Pinecone client
+    """
+    try:
+        client_type = type(pinecone_client).__name__
+        logger.info(f"Pinecone client type: {client_type}")
+        
+        # Check if methods exist
+        logger.info(f"Client has stats method: {hasattr(pinecone_client, 'stats')}")
+        logger.info(f"Client has search_records method: {hasattr(pinecone_client, 'search_records')}")
+        
+        # Check environment variables
+        logger.info(f"PINECONE_API_KEY set: {bool(os.environ.get('PINECONE_API_KEY'))}")
+        logger.info(f"PINECONE_INDEX_NAME: {os.environ.get('PINECONE_INDEX_NAME')}")
+    except Exception as e:
+        logger.error(f"Error in debug_pinecone_client: {e}")
+
+
+def pinecone_stats(pinecone_client: PineconeClient) -> list[types.TextContent]:
+    """
+    Get stats about the Pinecone index specified in this server
+    """
+    try:
+        logger.info("Getting Pinecone index stats")
+        logger.info(f"Using PineconeClient type: {type(pinecone_client).__name__}")
+        
+        # Debug pinecone client
+        logger.info(f"Pinecone client config - Index name: {os.environ.get('PINECONE_INDEX_NAME', 'unknown')}")
+        
+        # Run the debug function
+        debug_pinecone_client(pinecone_client)
+        
+        stats = pinecone_client.stats()
+        logger.info(f"Raw stats response: {stats}")
+        
+        # Extract and log namespaces
+        namespaces = stats.get('namespaces', {})
+        logger.info(f"Found {len(namespaces)} namespaces: {list(namespaces.keys())}")
+        
+        return [types.TextContent(type="text", text=json.dumps({
+            "stats": stats,
+            "index_name": os.environ.get("PINECONE_INDEX_NAME", "unknown"),
+            "total_vectors": stats.get("total_vector_count", 0)
+        }))]
+    except Exception as e:
+        logger.error(f"Error getting index stats: {e}", exc_info=True)  # Include full traceback
+        return [types.TextContent(type="text", text=json.dumps({
+            "error": str(e),
+            "message": "Failed to get Pinecone stats",
+            "error_type": type(e).__name__
+        }))]
+
+
+def read_document(
+    arguments: dict | None, pinecone_client: PineconeClient
+) -> list[types.TextContent]:
+    """
+    Read a single Pinecone document by ID
+    """
+    try:
+        document_id = arguments.get("document_id")
+        namespace = arguments.get("namespace")
+        if not document_id:
+            raise ValueError("document_id is required")
+
+        logger.info(f"Reading document: {document_id} from namespace: {namespace}")
+
+        # Fetch the record using your existing fetch_records method
+        record = pinecone_client.fetch_records([document_id], namespace=namespace)
+
+        # Get the vector data for this document
+        vector = record.vectors.get(document_id)
+        if not vector:
+            logger.warning(f"Document {document_id} not found")
+            return [types.TextContent(type="text", text=json.dumps({
+                "error": "Document not found",
+                "document_id": document_id
+            }))]
+
+        # Get metadata from the vector
+        metadata = vector.metadata if hasattr(vector, "metadata") else {}
+        logger.info(f"Document found with metadata keys: {list(metadata.keys())}")
+
+        # Format the document content for human reading
+        formatted_content = []
+        formatted_content.append(f"Document ID: {document_id}")
+        formatted_content.append("")  # Empty line for spacing
+
+        if metadata:
+            formatted_content.append("Metadata:")
+            for key, value in metadata.items():
+                formatted_content.append(f"{key}: {value}")
+
+        # Return both formatted text and structured data
+        return [types.TextContent(type="text", text=json.dumps({
+            "document_id": document_id,
+            "metadata": metadata,
+            "namespace": namespace or "default",
+            "formatted_text": "\n".join(formatted_content),
+            "has_vector": True
+        }))]
+    except Exception as e:
+        logger.error(f"Error reading document: {e}")
+        return [types.TextContent(type="text", text=json.dumps({
+            "error": str(e),
+            "message": f"Failed to read document: {document_id}",
+            "document_id": document_id
         }))] 

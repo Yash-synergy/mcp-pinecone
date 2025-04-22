@@ -13,6 +13,8 @@ class ToolName(str, Enum):
     """Enum of available tool names"""
     GET_TIME = "get-time"
     SEMANTIC_SEARCH = "semantic-search"
+    PINECONE_STATS = "pinecone-stats"
+    READ_DOCUMENT = "read-document"
 
 
 # Maps tool names to their corresponding Python scripts
@@ -71,6 +73,32 @@ SERVER_TOOLS = [
                 }
             },
             "required": [],
+        },
+    ),
+    # Pinecone stats tool
+    types.Tool(
+        name=ToolName.PINECONE_STATS,
+        description="Get stats about the Pinecone index specified in this server",
+        inputSchema={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    ),
+    # Read document tool
+    types.Tool(
+        name=ToolName.READ_DOCUMENT,
+        description="Read a document from pinecone",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string"},
+                "namespace": {
+                    "type": "string",
+                    "description": "Optional namespace to read from",
+                },
+            },
+            "required": ["document_id"],
         },
     ),
 ] 
