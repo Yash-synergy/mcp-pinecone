@@ -49,12 +49,11 @@ if not PINECONE_INDEX_NAME or not PINECONE_API_KEY:
     )
 
 # Inference API model name
-INFERENCE_MODEL = "multilingual-e5-large"
+INFERENCE_MODEL = "text-embedding-ada-002"
 
 # Inference API embedding dimension
-INFERENCE_DIMENSION = 1024
+INFERENCE_DIMENSION = 1536
 
-# Export values for use in other modules
 __all__ = [
     "PINECONE_INDEX_NAME",
     "PINECONE_API_KEY",
